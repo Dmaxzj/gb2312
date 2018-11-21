@@ -29,8 +29,6 @@ type gb2312ResponseWriter struct {
 	wroteHeader bool
 }
 
-// Check whether underlying response is already pre-encoded and disable
-// gzipWriter before the body gets written, otherwise encoding headers
 func (grw *gb2312ResponseWriter) WriteHeader(code int) {
 	headers := grw.ResponseWriter.Header()
 	if headers.Get(headerAcceptCharset) == "" {
@@ -40,9 +38,6 @@ func (grw *gb2312ResponseWriter) WriteHeader(code int) {
 	grw.wroteHeader = true
 }
 
-// Write writes bytes to the gzip.Writer. It will also set the Content-Type
-// header using the net/http library content type detection if the Content-Type
-// header was not set yet.
 func (grw *gb2312ResponseWriter) Write(b []byte) (int, error) {
 	reader := transform.NewReader(bytes.NewReader(b), simplifiedchinese.HZGB2312.NewEncoder())
 	d, e := ioutil.ReadAll(reader)
@@ -61,11 +56,12 @@ func newGb2312ResponseWriter(rw negroni.ResponseWriter) negroni.ResponseWriter {
 	return wr
 }
 
-type Gb2312Encode struct {
+type GB2312 struct {
 	gb2312ResponseWriter
 }
 
-type gb2312RequestReader struct {
+func NewGB2312() *GB2312 {
+	return &GB2312{}
 }
 
 func copyValues(dst, src url.Values) {
@@ -102,7 +98,7 @@ func gb2312decode(src url.Values) url.Values {
 }
 
 // ServeHTTP wraps the http.ResponseWriter with a gzip.Writer.
-func (h *Gb2312Encode) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func (h *GB2312) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	// fmt.Println("middleware ", r.Method, r.Header.Get(headerAcceptCharset))
 
 	if r.Method == "POST" && strings.Contains(r.Header.Get(headerAcceptCharset), charsetGb2312) {
